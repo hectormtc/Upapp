@@ -132,9 +132,22 @@ class Articulo(models.Model):
     def __str__(self):
             return '{0}, Cantidad: {1}, SubTotal: {2} '.format(self.producto,self.cantidad, self.getSubtotal())
 
+
+class Orden(models.Model):
+    articulo = models.ForeignKey('Articulo', on_delete=models.SET_NULL,null=True)
+    #articulo = models.ManyToManyField('Articulo')
+
+    def getOrden(self):
+        return self.articulo.producto.producto
+
+    def __str__(self):
+        return self.getOrden()
+
+
 class Factura(models.Model):
-    articulo = models.ManyToManyField(Articulo)
-    #articulo = models.ForeignKey(Articulo, on_delete=models.SET_NULL,null=True)
+    #factura = models.ForeignKey('Articulo', on_delete=models.SET_NULL, null=True)
+    orden = models.ManyToManyField('Orden')
+    #orden = models.ForeignKey('Orden', on_delete=models.SET_NULL,null=True)
     cliente = models.ForeignKey('User', on_delete=models.SET_NULL, null=True)
 
     encargado = models.ForeignKey('Encargado', on_delete=models.SET_NULL, null=True)
