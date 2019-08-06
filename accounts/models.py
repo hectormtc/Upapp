@@ -123,6 +123,9 @@ class Articulo(models.Model):
     producto = models.ForeignKey('Inventario', on_delete=models.SET_NULL, null=True)
     cantidad  = models.PositiveIntegerField()
 
+    def getProductName(self):
+        return self.producto.producto
+
     def getSubtotal(self):
             return int(self.producto.precio * self.cantidad)
 
@@ -138,7 +141,7 @@ class Orden(models.Model):
     #articulo = models.ManyToManyField('Articulo')
 
     def getOrden(self):
-        return self.articulo.producto.producto
+        return '{0} '.format(self.articulo)
 
     def __str__(self):
         return self.getOrden()
