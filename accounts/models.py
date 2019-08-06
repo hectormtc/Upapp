@@ -1,51 +1,53 @@
+# -*- coding: UTF-8 -*-
+from __future__ import unicode_literals
 from django.db import models
-
 from django.contrib.auth.models import User
-
 import datetime
-
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+import uuid
+from django.urls import reverse
+
 
 class Address(models.Model):
     address = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.address
+            return self.address
 
 class Phone(models.Model):
     phone = models.CharField(
-        max_length=15)
+            max_length=15)
     address = models.ForeignKey(Address, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.phone + "-" + self.address.address
+            return self.phone + "-" + self.address.address
 
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password):
-        if not email:
-            raise ValueError('Users must have an email address')
+            if not email:
+                    raise ValueError('Users must have an email address')
 
-        elif not username:
-            raise ValueError('Users must have an username')
+            elif not username:
+                    raise ValueError('Users must have an username')
 
-        user = self.model(
-            email=self.normalize_email(email),
-            username=username,
-        )
+            user = self.model(
+                    email=self.normalize_email(email),
+                    username=username,
+            )
 
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
+            user.set_password(password)
+            user.save(using=self._db)
+            return user
 
     def create_superuser(self, username, email, password):
-        user = self.create_user(
-            email=email,
-            username=username,
-            password=password,
-        )
-        user.is_admin = True
-        user.save(using=self._db)
-        return user
+            user = self.create_user(
+                    email=email,
+                    username=username,
+                    password=password,
+            )
+            user.is_admin = True
+            user.save(using=self._db)
+            return user
 
 
 class User(models.Model):
@@ -61,9 +63,9 @@ class User(models.Model):
     email = models.EmailField(max_length=255, unique=True)
     address = models.ManyToManyField(Address)
     phone = models.ManyToManyField(Phone)
-    
+
     def __str__(self):
-        return self.username
+            return self.username
 
 
 class Connection(models.Model):
@@ -72,7 +74,98 @@ class Connection(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return "{} : {}".format(
-            self.follower.username,
-            self.following.username
-            )
+            return "{} : {}".format(
+                    self.follower.username,
+                    self.following.username
+                    )
+
+
+
+class Categoria(models.Model):
+    categoria = models.CharField(max_length=50, help_text="Tipo de categoria")
+
+    def __str__(self):
+                    return self.categoria
+
+
+class Rol(models.Model):
+    nombre = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.nombre
+
+
+class Encargado(models.Model):
+    nombre = models.CharField(max_length=20)
+    apellido = models.CharField(max_length=20)
+    rol = models.ForeignKey('Rol', on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return '{0} {1}'.format(self.nombre, self.apellido)
+
+
+class Inventario(models.Model):
+    producto  = models.CharField('Producto', max_length=200, help_text="Nombre del producto")
+    detalles  = models.CharField(max_length=200, help_text="Detalles sobre el producto",blank=True)
+    cantidad  = models.PositiveIntegerField()
+    precio    = models.PositiveIntegerField()
+    categoria = models.ForeignKey('Categoria', on_delete=models.SET_NULL, null=True)
+
+    def display_Categoria(self):
+            return ', '.join([ self.categoria.categoria])
+            display_Categoria.short_description = 'Categoria'
+
+    def __str__(self):
+            return '{0},  {1},Precio: {2}'.format(self.producto, self.detalles, self.precio)
+
+
+class Articulo(models.Model):
+    producto = models.ForeignKey('Inventario', on_delete=models.SET_NULL, null=True)
+    cantidad  = models.PositiveIntegerField()
+
+    def getSubtotal(self):
+            return int(self.producto.precio * self.cantidad)
+
+    def getTotal(self):
+            return sum(self.getSubtotal())
+
+    def __str__(self):
+            return '{0}, Cantidad: {1}, SubTotal: {2} '.format(self.producto,self.cantidad, self.getSubtotal())
+
+class Factura(models.Model):
+    articulo = models.ManyToManyField(Articulo)
+    #articulo = models.ForeignKey(Articulo, on_delete=models.SET_NULL,null=True)
+    cliente = models.ForeignKey('User', on_delete=models.SET_NULL, null=True)
+
+    encargado = models.ForeignKey('Encargado', on_delete=models.SET_NULL, null=True)
+
+    date_deliver = models.DateField("Fecha de pedido", auto_now_add=True, null=True, help_text="Fecha en que se hizo el pedido")
+    date_receive = models.DateField("Fecha de entrega", null=True, blank=True, help_text="Fecha en que se debe recibir el pedido")
+
+    PAGADO             = 'P'
+    PENDIENTE          = 'PP'
+    ENTREGADO          = 'E'
+    ALQUILADO          = 'A'
+    ALQUILER_PENDIENTE = 'AP'
+    LOCAL              = 'L'
+    ENTREGAR           = 'EE'
+
+    PAY     = ((PAGADO, 'Pagado'),(PENDIENTE,'Pendiente Pago'),)
+    RENT    = ((ENTREGADO, 'Entregado'),(ALQUILADO, 'En Alquiler'), (ALQUILER_PENDIENTE,'Alquiler Pendiente'),)
+    DELIVER = ((LOCAL, 'Local'),(ENTREGAR,'Entrega exterior'),)
+
+    estado_de_pago  = models.CharField(max_length=2,choices=PAY, default=PAGADO)
+    estado_de_renta = models.CharField(max_length=2, choices=RENT, default=ALQUILADO)
+    tipo_de_entrega = models.CharField(max_length=2, choices=DELIVER, default=LOCAL)
+    pago_pendiente  = models.PositiveIntegerField(blank=True)
+    deposito        = models.PositiveIntegerField(blank=True)
+    direccion       = models.TextField(help_text='Solo en caso de entrega exterior', blank=True)
+    observacion     = models.TextField(help_text="Observacion Adicional", blank=True)
+
+
+    class Meta:
+                    ordering = ["date_deliver"]
+
+
+    def __str__(self):
+                    return '%s' % (self.cliente.name)
