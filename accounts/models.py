@@ -17,7 +17,7 @@ class Address(models.Model):
 class Phone(models.Model):
     phone = models.CharField(
             max_length=15)
-    address = models.ForeignKey(Address, on_delete=models.CASCADE)
+    address = models.ForeignKey(Address,on_delete=models.CASCADE)
 
     def __str__(self):
             return self.phone + "-" + self.address.address
@@ -73,6 +73,7 @@ class Connection(models.Model):
     following = models.ForeignKey(User, related_name='Proveedor', on_delete=models.CASCADE)
     date_created = models.DateTimeField(auto_now_add=True)
 
+
     def __str__(self):
             return "{} : {}".format(
                     self.follower.username,
@@ -120,11 +121,11 @@ class Inventario(models.Model):
 
 
 class Articulo(models.Model):
-    producto = models.ForeignKey('Inventario', on_delete=models.SET_NULL, null=True)
+    producto = models.ForeignKey(Inventario, on_delete=models.SET_NULL, null=True)
     cantidad  = models.PositiveIntegerField()
 
     def getProductName(self):
-        return self.producto.producto
+        return '%s %s' % (self.producto.producto, self.producto.detalles)
 
     def getSubtotal(self):
             return int(self.producto.precio * self.cantidad)
@@ -133,23 +134,27 @@ class Articulo(models.Model):
             return sum(self.getSubtotal())
 
     def __str__(self):
-            return '{0}, Cantidad: {1}, SubTotal: {2} '.format(self.producto,self.cantidad, self.getSubtotal())
-
+            return '{0}, Cantidad: {1}, SubTotal: {2}'.format(self.producto,self.cantidad, self.getSubtotal())
 
 class Orden(models.Model):
-    articulo = models.ForeignKey('Articulo', on_delete=models.SET_NULL,null=True)
+    articulo = models.ForeignKey(Articulo, on_delete=models.SET_NULL,null=True)
     #articulo = models.ManyToManyField('Articulo')
 
-    def getOrden(self):
-        return '{0} '.format(self.articulo)
+    def getProductName(self):
+        return '%s' % (self.articulo.getProductName())
 
     def __str__(self):
-        return self.getOrden()
+        return '%s' % (self.articulo.getProductName())
 
+class InOrden(models.Model):
+    in_orden = models.ManyToManyField('Orden')
+
+    def __str__(self):
+        return 'Orden: %s' % (self.in_orden)
 
 class Factura(models.Model):
     #factura = models.ForeignKey('Articulo', on_delete=models.SET_NULL, null=True)
-    orden = models.ManyToManyField('Orden')
+    orden = models.ManyToManyField('InOrden')
     #orden = models.ForeignKey('Orden', on_delete=models.SET_NULL,null=True)
     cliente = models.ForeignKey('User', on_delete=models.SET_NULL, null=True)
 
