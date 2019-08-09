@@ -212,7 +212,7 @@ import uuid
 
 class Orden(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, help_text="ID unico para esta factura",editable=False)
-    articulo = models.ManyToManyField('Articulo')
+    articulo = models.ManyToManyField('Articulo', blank=True)
     #articulo = models.OneToOneField(Articulo, on_delete=models.CASCADE, parent_link=True,)
 
 
@@ -235,7 +235,7 @@ class Factura(models.Model):
 
     #factura = models.ForeignKey('Articulo', on_delete=models.SET_NULL, null=True)
     orden = models.ManyToManyField(
-                                'Orden'
+                                'Orden',
                                 )
     #orden = models.ForeignKey('Orden', on_delete=models.SET_NULL,null=True)
     encargado = models.ForeignKey(
